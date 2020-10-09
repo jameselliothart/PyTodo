@@ -44,9 +44,6 @@ class TodosPurgedEvent(TodosEvent):
 
 class TodosPurgedEventHandler(Subject): pass
 
-# def _create(todos: List[str]) -> List[Todos._Todo]:
-#     return [Todos._Todo(index, item) for index, item in enumerate(todos)]
-
 def _to_string(todos: List[Todos._Todo]) -> List[str]:
     return [str(todo) for todo in todos] if todos else [f"No todos"]
 
