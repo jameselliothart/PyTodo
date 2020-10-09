@@ -97,10 +97,6 @@ purged.subscribe(lambda todos: shared.display(_to_string(todos)))
 def handle(event):
     print(f'Unregistered event type: [{type(event)}]')
 
-@handle.register
-def _(event: TodosAddedEvent):
-    print(f'hi {event}')
-
 # Python 3.7+ can use the type annotation of the first argument
 @handle.register(TodosAddedEvent)
 def _handle_added(event: TodosAddedEvent):
