@@ -1,8 +1,9 @@
 import shared
 import file
-import sys
 import re
 import click
+import sqlite3
+from contextlib import closing
 from functools import partial
 from datetime import datetime, timedelta
 from typing import List, Optional
