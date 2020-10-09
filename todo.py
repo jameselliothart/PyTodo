@@ -1,5 +1,4 @@
 import done
-from file import read_all_lines
 import shared
 import file
 import click
@@ -8,55 +7,65 @@ from rx.subject import Subject
 from typing import Any, List, NamedTuple, Tuple
 
 
-class Todo(NamedTuple):
-    idx: int
-    item: str
+class Todos():
+    class _Todo():
+        def __init__(self, index: int, item: str) -> None:
+            self.index = index
+            self.item = item
 
-class TodoEvent(NamedTuple):
+        def __str__(self) -> str:
+            return f'{self.index}. {self.item}'
+
+    @staticmethod
+    def create(todos: List[str]) -> List[_Todo]:
+        return [Todos._Todo(index, item) for index, item in enumerate(todos)]
+
+
+class TodosEvent(NamedTuple):
     args: Any
 
-class TodosAddedEvent(TodoEvent):
+class TodosAddedEvent(TodosEvent):
     args: str
 
 class TodosAddedEventHandler(Subject): pass
 
-class TodosRemainingEvent(TodoEvent):
-    args: List[Todo]
+class TodosRemainingEvent(TodosEvent):
+    args: List[Todos._Todo]
 
 class TodosRemainingEventHandler(Subject): pass
 
-class TodosCompletedEvent(TodoEvent):
-    args: List[Todo]
+class TodosCompletedEvent(TodosEvent):
+    args: List[Todos._Todo]
 
 class TodosCompletedEventHandler(Subject): pass
 
-class TodosPurgedEvent(TodoEvent):
-    args: List[Todo]
+class TodosPurgedEvent(TodosEvent):
+    args: List[Todos._Todo]
 
 class TodosPurgedEventHandler(Subject): pass
 
-def _create(todos: List[str]) -> List[Todo]:
-    return [Todo(index, item) for index, item in enumerate(todos)]
+# def _create(todos: List[str]) -> List[Todos._Todo]:
+#     return [Todos._Todo(index, item) for index, item in enumerate(todos)]
 
-def _to_string(todos: List[Todo]) -> List[str]:
-    return [f"{todo.idx}. {todo.item}" for todo in todos] if todos else [f"No todos"]
+def _to_string(todos: List[Todos._Todo]) -> List[str]:
+    return [str(todo) for todo in todos] if todos else [f"No todos"]
 
 def _add_todo(existing: List[str], todo: str) -> List[str]:
     new_todos = [todo]
     new_todos.extend(existing)
     return new_todos
 
-def _partition_todos(todos: List[Todo], index: int) -> Tuple[List[Todo], List[Todo]]:
-    partitioned: List[Todo] = []
-    remaining: List[Todo] = []
-    for todo in todos: (partitioned if todo.idx == index else remaining).append(todo)
+def _partition_todos(todos: List[Todos._Todo], index: int) -> Tuple[List[Todos._Todo], List[Todos._Todo]]:
+    partitioned: List[Todos._Todo] = []
+    remaining: List[Todos._Todo] = []
+    for todo in todos: (partitioned if todo.index == index else remaining).append(todo)
     return partitioned, remaining
 
-def _complete_todos(todos: List[Todo], index: int) -> List[TodoEvent]:
+def _complete_todos(todos: List[Todos._Todo], index: int) -> List[TodosEvent]:
     completed, remaining = _partition_todos(todos, index)
     return [TodosCompletedEvent(completed), TodosRemainingEvent(remaining)]
 
-def _purge_todos(todos: List[Todo], index: int) -> List[TodoEvent]:
+def _purge_todos(todos: List[Todos._Todo], index: int) -> List[TodosEvent]:
     purged, remaining = _partition_todos(todos, index)
     return [TodosPurgedEvent(purged), TodosRemainingEvent(remaining)]
 
@@ -65,11 +74,11 @@ def _add_to_file(path: str, todo: str):
     updated = _add_todo(existing, todo)
     file.write_all_lines(path, updated)
 
-def _save_to_file(path: str, todos: List[Todo]):
+def _save_to_file(path: str, todos: List[Todos._Todo]):
     file.write_all_lines(path, [todo.item for todo in todos])
 
-def get():
-    file.read_all_lines('todo.txt')
+def get() -> List[Todos._Todo]:
+    return Todos.create(file.read_all_lines('todo.txt'))
 
 _add = partial(_add_to_file, 'todo.txt')
 _save = partial(_save_to_file, 'todo.txt')
@@ -81,29 +90,34 @@ remaining = TodosRemainingEventHandler()
 remaining.subscribe(_save)
 
 completed = TodosCompletedEventHandler()
-completed.subscribe(lambda todos: done.save([done.CompletedItem(todo.item) for todo in todos]))
+completed.subscribe(lambda todos: done.save([todo.item for todo in todos]))
 completed.subscribe(lambda todos: shared.display(_to_string(todos)))
 
 purged = TodosPurgedEventHandler()
-completed.subscribe(lambda todos: shared.display(_to_string(todos)))
+purged.subscribe(lambda todos: shared.display(_to_string(todos)))
 
 @singledispatch
-def _handle(event):
+def handle(event):
     print(f'Unregistered event type: [{type(event)}]')
 
-@_handle.register
+@handle.register
+def _(event: TodosAddedEvent):
+    print(f'hi {event}')
+
+# Python 3.7+ can use the type annotation of the first argument
+@handle.register(TodosAddedEvent)
 def _handle_added(event: TodosAddedEvent):
     added.on_next(event.args)
 
-@_handle.register
+@handle.register(TodosRemainingEvent)
 def _handle_remaining(event: TodosRemainingEvent):
     remaining.on_next(event.args)
 
-@_handle.register
+@handle.register(TodosCompletedEvent)
 def _handle_completed(event: TodosCompletedEvent):
     completed.on_next(event.args)
 
-@_handle.register
+@handle.register(TodosPurgedEvent)
 def _handle_purged(event: TodosPurgedEvent):
     purged.on_next(event.args)
 
@@ -111,25 +125,27 @@ def _handle_purged(event: TodosPurgedEvent):
 @click.group()
 def cli(): pass
 
-@cli.command()
+@cli.command(name='s')
 def show():
     shared.display(get())
 
 @cli.command(name='a')
 @click.argument('todo_item', type=str)
 def add_cli(todo_item: str):
-    _add(todo_item)
+    handle(TodosAddedEvent(todo_item))
 
 @cli.command(name='r')
 @click.argument('index_to_remove', type=int)
 def get_by_days(index_to_remove):
-    _handle(_com)
+    events = _complete_todos(get(), index_to_remove)
+    for event in events: handle(event)
 
 @cli.command(name='p')
-@click.argument('number_of_weeks_ago', type=int)
-def get_by_weeks(number_of_weeks_ago):
-    completed_since = weeks_ago(datetime.now(), number_of_weeks_ago)
-    shared.display(get(completed_since))
+@click.argument('index_to_purge', type=int)
+def get_by_weeks(index_to_purge):
+    events = _purge_todos(get(), index_to_purge)
+    for event in events: handle(event)
 
 
 if __name__ == "__main__":
+    cli()
