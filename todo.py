@@ -120,7 +120,7 @@ def cli(): pass
 
 @cli.command(name='s')
 def show():
-    shared.display(get())
+    shared.display(_to_string(get()))
 
 @cli.command(name='a')
 @click.argument('todo_item', type=str)
