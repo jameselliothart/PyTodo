@@ -39,8 +39,9 @@ def days_ago(date: datetime, num_days: int) -> datetime:
 def weeks_ago(date: datetime, num_weeks: int) -> datetime:
     return _start_of_week(date - timedelta(days=7*num_weeks))
 
-def _save_to_file(path: str, completed_items: List[CompletedItem]) -> None:
-    for completed_item in completed_items: file.append_line(path, str(completed_item))
+def _save_to_file(path: str, completed_items: List[str]) -> None:
+    for completed_item in completed_items:
+        file.append_line(path, str(CompletedItem(completed_item)))
 
 def _check_completed_since(completed_item: str, completed_since: datetime) -> bool:
     item = try_parse(completed_item)
@@ -59,7 +60,7 @@ def cli(): pass
 @cli.command(name='a')
 @click.argument('completed_item', type=str)
 def save_cli(completed_item: str):
-    save([CompletedItem(completed_item)])
+    save([completed_item])
 
 @cli.command(name='d')
 @click.argument('number_of_days_ago', type=int)
