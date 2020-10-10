@@ -16,9 +16,3 @@ def read_all_lines(path: str) -> List[str]:
         return []
     with open(path) as f:
         return [line.strip() for line in f.readlines()]
-
-def read_all_lines_filtered(path: str, filter: Callable[[str], bool]) -> List[str]:
-    if not os.path.exists(path):
-        return []
-    with open(path) as f:
-        return [line.strip() for line in f.readlines() if filter(line)]
