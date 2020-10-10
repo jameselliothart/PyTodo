@@ -1,32 +1,21 @@
 import done
 import shared
-import file
+import todo_file
 import click
 import todo_domain as td
-from todo_domain import Todos
 from functools import partial, singledispatch
-from typing import List
 
 
-def _add_to_file(path: str, todo: str):
-    existing = file.read_all_lines(path)
-    updated = td.add_todo(existing, todo)
-    file.write_all_lines(path, updated)
+def get(): return todo_file.get(todo_file.PATH)
 
-def _save_to_file(path: str, todos: List[Todos._Todo]):
-    file.write_all_lines(path, [todo.item for todo in todos])
-
-def get() -> List[Todos._Todo]:
-    return Todos.create(file.read_all_lines('todo.txt'))
-
-_add = partial(_add_to_file, 'todo.txt')
-_save = partial(_save_to_file, 'todo.txt')
+add = partial(todo_file.add, todo_file.PATH)
+save = partial(todo_file.save, todo_file.PATH)
 
 added = td.TodosAddedEventHandler()
-added.subscribe(_add)
+added.subscribe(add)
 
 remaining = td.TodosRemainingEventHandler()
-remaining.subscribe(_save)
+remaining.subscribe(save)
 
 completed = td.TodosCompletedEventHandler()
 completed.subscribe(lambda todos: done.save_from_string([todo.item for todo in todos]))
