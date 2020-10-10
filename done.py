@@ -3,7 +3,7 @@ import file
 import re
 import click
 import sqlite3
-from contextlib import closing
+from contextlib import closing, contextmanager
 from functools import partial
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -16,6 +16,10 @@ class CompletedItem():
 
     def __str__(self) -> str:
         return f'[{self.completed_on.isoformat()}] {self.item}'
+
+    @staticmethod
+    def create_default(items: List[str]):
+        return [CompletedItem(item) for item in items]
 
 def _parse_datetime(iso_date: str) -> datetime:
     return datetime.strptime(iso_date, "%Y-%m-%dT%H:%M:%S.%f")
@@ -41,8 +45,8 @@ def weeks_ago(date: datetime, num_weeks: int) -> datetime:
     return _start_of_week(date - timedelta(days=7*num_weeks))
 
 def _save_to_file(path: str, completed_items: List[str]) -> None:
-    for completed_item in completed_items:
-        file.append_line(path, str(CompletedItem(completed_item)))
+    for completed_item in CompletedItem.create_default(completed_items):
+        file.append_line(path, str(completed_item))
 
 def _check_completed_since(completed_item: str, completed_since: datetime) -> bool:
     item = try_parse(completed_item)
@@ -50,6 +54,42 @@ def _check_completed_since(completed_item: str, completed_since: datetime) -> bo
 
 def _get_from_file(path: str, completed_since: datetime) -> List[str]:
     return file.read_all_lines_filtered(path, lambda l: _check_completed_since(l, completed_since))
+
+# https://www.digitalocean.com/community/tutorials/how-to-use-the-sqlite3-module-in-python-3
+# https://docs.python.org/3.6/library/sqlite3.html#sqlite3-controlling-transactions
+# https://stackoverflow.com/questions/1829872/how-to-read-datetime-back-from-sqlite-as-a-datetime-instead-of-string-in-python
+# delcare CompletedOn as TIMESTAMP and use detect_types to get back datetime
+@contextmanager
+def _cursor(db_path: str):
+    with closing(sqlite3.connect(db_path, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)) as connection:
+        with closing(connection.cursor()) as cursor:
+            yield cursor
+
+def _initialize_db(db_path: str):
+    with _cursor(db_path) as cursor:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS CompletedItems (
+                Id INTEGER PRIMARY KEY,
+                CompletedOn TIMESTAMP,
+                Item VARCHAR(255)
+                )"""
+            )
+
+def _save_to_db(db_path: str, completed_items: List[str]):
+    with _cursor(db_path) as cursor:
+        for completed_item in CompletedItem.create_default(completed_items):
+            cursor.execute(
+                "INSERT INTO CompletedItems (CompletedOn, Item) VALUES (?, ?)",
+                (completed_item.completed_on, completed_item.item)
+                )
+
+def _get_from_db(db_path: str, completed_since: datetime) -> List[CompletedItem]:
+    with _cursor(db_path) as cursor:
+        rows = cursor.execute(
+            "SELECT CompletedOn, Item from CompletedItems WHERE CompletedOn > ?",
+            (completed_since,)
+            )
+        return [CompletedItem(row[1], row[0]) for row in rows.fetchall()]
 
 save = partial(_save_to_file, 'todo.done.txt')
 get = partial(_get_from_file, 'todo.done.txt')
