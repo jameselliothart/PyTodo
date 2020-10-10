@@ -1,5 +1,5 @@
 import os
-from typing import Callable, List
+from typing import List
 
 
 def write_all_lines(path: str, lines: List[str]):
