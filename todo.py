@@ -19,10 +19,10 @@ remaining.subscribe(save)
 
 completed = td.TodosCompletedEventHandler()
 completed.subscribe(lambda todos: done.save_from_string([todo.item for todo in todos]))
-completed.subscribe(lambda todos: shared.display(Todos.to_string(todos)))
+completed.subscribe(lambda todos: shared.display(todos))
 
 purged = td.TodosPurgedEventHandler()
-purged.subscribe(lambda todos: shared.display(Todos.to_string(todos)))
+purged.subscribe(lambda todos: shared.display(todos))
 
 @singledispatch
 def handle(event):
@@ -51,7 +51,7 @@ def cli(): pass
 
 @cli.command(name='s')
 def show():
-    shared.display(Todos.to_string(get()))
+    shared.display(get())
 
 @cli.command(name='a')
 @click.argument('todo_item', type=str)

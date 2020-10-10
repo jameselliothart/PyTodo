@@ -14,10 +14,6 @@ class Todos():
     def create(todos: List[str]) -> List[_Todo]:
         return [Todos._Todo(index, item) for index, item in enumerate(todos)]
 
-    @staticmethod
-    def to_string(todos: List[_Todo]) -> List[str]:
-        return [str(todo) for todo in todos] if todos else [f"No todos"]
-
 class TodosEvent(NamedTuple):
     args: Any
 
