@@ -21,6 +21,7 @@ class CompletedItem():
     def create_default(items: List[str]):
         return [CompletedItem(item) for item in items]
 
+# Python 3.7+ has `datetime.fromisoformat()`
 def _parse_datetime(iso_date: str) -> datetime:
     return datetime.strptime(iso_date, "%Y-%m-%dT%H:%M:%S.%f")
 
@@ -58,7 +59,7 @@ def _get_from_file(path: str, completed_since: datetime) -> List[str]:
 # https://www.digitalocean.com/community/tutorials/how-to-use-the-sqlite3-module-in-python-3
 # https://docs.python.org/3.6/library/sqlite3.html#sqlite3-controlling-transactions
 # https://stackoverflow.com/questions/1829872/how-to-read-datetime-back-from-sqlite-as-a-datetime-instead-of-string-in-python
-# delcare CompletedOn as TIMESTAMP and use detect_types to get back datetime
+# declare CompletedOn as TIMESTAMP and use detect_types to get back datetime
 @contextmanager
 def _cursor(db_path: str):
     with closing(sqlite3.connect(db_path, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)) as connection:
