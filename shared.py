@@ -1,5 +1,5 @@
-from typing import Iterable
+from typing import Any, Iterable
 
 
-def display(data: Iterable[str]):
-    for datum in data: print(datum)
+def display(data: Iterable[Any]):
+    for datum in data: print(str(datum))
