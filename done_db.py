@@ -1,11 +1,13 @@
-import done
+import os
+import done_domain as done
 import sqlite3
 from datetime import datetime
 from typing import List
 from contextlib import contextmanager, closing
 
 
-DB_PATH = 'done.db'
+PATH = 'done.db'
+
 
 # https://www.digitalocean.com/community/tutorials/how-to-use-the-sqlite3-module-in-python-3
 # https://docs.python.org/3.6/library/sqlite3.html#sqlite3-controlling-transactions
@@ -27,18 +29,20 @@ def _initialize_db(db_path: str):
                 )"""
             )
 
-def _save_to_db(db_path: str, completed_items: List[str]):
+def save(db_path: str, completed_items: List[done.CompletedItem]):
+    if not os.path.exists(PATH): _initialize_db(PATH)
     with _cursor(db_path) as cursor:
-        for completed_item in done.CompletedItem.create_default(completed_items):
+        for completed_item in completed_items:
             cursor.execute(
                 "INSERT INTO CompletedItems (CompletedOn, Item) VALUES (?, ?)",
                 (completed_item.completed_on, completed_item.item)
                 )
 
-def _get_from_db(db_path: str, completed_since: datetime) -> List[done.CompletedItem]:
+def get(db_path: str, completed_since: datetime) -> List[done.CompletedItem]:
+    if not os.path.exists(PATH): _initialize_db(PATH)
     with _cursor(db_path) as cursor:
         rows = cursor.execute(
-            "SELECT CompletedOn, Item from CompletedItems WHERE CompletedOn > ?",
+            "SELECT Item, CompletedOn from CompletedItems WHERE CompletedOn > ?",
             (completed_since,)
             )
-        return [done.CompletedItem(row[1], row[0]) for row in rows.fetchall()]
+        return [done.CompletedItem(*row) for row in rows.fetchall()]
