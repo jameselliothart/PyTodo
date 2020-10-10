@@ -3,3 +3,4 @@ venv
 __pycache__
 todo.done.txt
 todo.txt
+*.db
