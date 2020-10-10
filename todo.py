@@ -8,18 +8,20 @@ from typing import Any, List, NamedTuple, Tuple
 
 
 class Todos():
-    class _Todo():
-        def __init__(self, index: int, item: str) -> None:
-            self.index = index
-            self.item = item
+    class _Todo(NamedTuple):
+        idx : int
+        item : str
 
         def __str__(self) -> str:
-            return f'{self.index}. {self.item}'
+            return f'{self.idx}. {self.item}'
 
     @staticmethod
     def create(todos: List[str]) -> List[_Todo]:
         return [Todos._Todo(index, item) for index, item in enumerate(todos)]
 
+    @staticmethod
+    def to_string(todos: List[_Todo]) -> List[str]:
+        return [str(todo) for todo in todos] if todos else [f"No todos"]
 
 class TodosEvent(NamedTuple):
     args: Any
@@ -44,9 +46,6 @@ class TodosPurgedEvent(TodosEvent):
 
 class TodosPurgedEventHandler(Subject): pass
 
-def _to_string(todos: List[Todos._Todo]) -> List[str]:
-    return [str(todo) for todo in todos] if todos else [f"No todos"]
-
 def _add_todo(existing: List[str], todo: str) -> List[str]:
     new_todos = [todo]
     new_todos.extend(existing)
@@ -55,7 +54,7 @@ def _add_todo(existing: List[str], todo: str) -> List[str]:
 def _partition_todos(todos: List[Todos._Todo], index: int) -> Tuple[List[Todos._Todo], List[Todos._Todo]]:
     partitioned: List[Todos._Todo] = []
     remaining: List[Todos._Todo] = []
-    for todo in todos: (partitioned if todo.index == index else remaining).append(todo)
+    for todo in todos: (partitioned if todo.idx == index else remaining).append(todo)
     return partitioned, remaining
 
 def _complete_todos(todos: List[Todos._Todo], index: int) -> List[TodosEvent]:
@@ -87,11 +86,11 @@ remaining = TodosRemainingEventHandler()
 remaining.subscribe(_save)
 
 completed = TodosCompletedEventHandler()
-completed.subscribe(lambda todos: done.save([todo.item for todo in todos]))
-completed.subscribe(lambda todos: shared.display(_to_string(todos)))
+completed.subscribe(lambda todos: done.save_from_string([todo.item for todo in todos]))
+completed.subscribe(lambda todos: shared.display(Todos.to_string(todos)))
 
 purged = TodosPurgedEventHandler()
-purged.subscribe(lambda todos: shared.display(_to_string(todos)))
+purged.subscribe(lambda todos: shared.display(Todos.to_string(todos)))
 
 @singledispatch
 def handle(event):
@@ -120,7 +119,7 @@ def cli(): pass
 
 @cli.command(name='s')
 def show():
-    shared.display(_to_string(get()))
+    shared.display(Todos.to_string(get()))
 
 @cli.command(name='a')
 @click.argument('todo_item', type=str)
