@@ -23,12 +23,11 @@ def try_parse(done_item: str) -> Optional[done.CompletedItem]:
     return None
 
 def parse(done_item: str) -> done.CompletedItem:
-    matches = re.match(r'^\[(?P<completedOn>.*)\] (?P<item>.*)', done_item)
-    if matches:
-        completed_on = _parse_datetime(matches.group('completedOn'))
-        item = matches.group('item')
-        return done.CompletedItem(item, completed_on)
-    raise ValueError("`done_item` must be of format '[isodate] completed item'")
+    completed_item = try_parse(done_item)
+    if completed_item:
+        return completed_item
+    else:
+        raise ValueError("`done_item` must be of format '[isodate] completed item'")
 
 def _check_completed_since(completed_item: Optional[done.CompletedItem], completed_since: datetime) -> bool:
     return completed_since < completed_item.completed_on if completed_item else False
