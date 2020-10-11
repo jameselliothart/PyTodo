@@ -3,7 +3,7 @@ import os
 import file
 import done_domain as done
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 
 PATH = 'todo.done.txt'
