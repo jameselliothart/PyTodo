@@ -16,7 +16,7 @@ def create_default(item: str) -> CompletedItem:
 def _start_of_day(date: datetime) -> datetime:
     return date.replace(hour=0, minute=0, second=0, microsecond=0)
 
-def _start_of_week(date: datetime):
+def _start_of_week(date: datetime) -> datetime:
     return _start_of_day(date - timedelta(days=date.isoweekday()))
 
 def days_ago(date: datetime, num_days: int) -> datetime:
