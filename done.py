@@ -3,7 +3,7 @@ import done_file
 import done_db
 import done_domain
 import click
-from typing import List
+from typing import Iterable
 from functools import partial
 from datetime import datetime
 
@@ -15,7 +15,7 @@ save = partial(done_db.save, done_db.PATH)
 get = partial(done_db.get, done_db.PATH)
 
 
-def save_from_string(items: List[str]):
+def save_from_string(items: Iterable[str]):
     save([done_domain.create_default(item) for item in items])
 
 
